@@ -1,11 +1,6 @@
 import numpy as np
 ##======================== No additional imports allowed ====================================##
 
-
-
-
-
-
 def photometric_stereo_singlechannel(I, L):
     #L is 3 x k
     #I is k x n
@@ -34,7 +29,32 @@ def photometric_stereo(images, lights):
         and renormalize so that they are unit norm
 
     '''
-    pass
+    H, W, _ = images[0].shape
+    N = len(images)
+    albedo = np.zeros((H, W, 3))
+    normals = np.zeros((H, W, 3))
+    
+    for i in range(N):
+        image = images[i]
+        light = lights[:, i]
+        
+        for c in range(3):
+            I = image[:, :, c].reshape(-1, 1)
+            L = light.reshape(1, -1)
+            
+            channel_albedo, channel_normals = photometric_stereo_singlechannel(I, L)
+            
+            albedo[:, :, c] += channel_albedo.reshape(H, W)
+            normals[:, :, c] += channel_normals.reshape(H, W)
+    
+    albedo /= N
+    normals /= N
+    
+    # Renormalize the normals
+    norm = np.sqrt(np.sum(normals * normals, axis=2, keepdims=True))
+    normals /= norm
+    
+    return albedo, normals
 
 
 

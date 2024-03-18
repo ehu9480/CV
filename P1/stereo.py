@@ -24,8 +24,25 @@ def get_ncc_descriptors(img, patchsize):
     If the norm of the vector is <1e-6 before normalizing, zero out the vector.
 
     '''
-    pass
-
+    height, width, channels = img.shape
+    normalized = np.zeros((height, width, channels * patchsize**2))
+    
+    for i in range(height):
+        for j in range(width):
+            patch = img[max(0, i-patchsize//2):min(height, i+patchsize//2+1),
+                        max(0, j-patchsize//2):min(width, j+patchsize//2+1), :]
+            patch_mean = np.mean(patch, axis=(0, 1))
+            patch_mean = patch_mean.reshape(-1)
+            patch_flattened = patch.reshape(-1)
+            patch_normalized = patch_flattened - patch_mean # ???
+            patch_norm = np.linalg.norm(patch_normalized)
+            
+            if patch_norm < 1e-6:
+                normalized[i, j, :] = 0
+            else:
+                normalized[i, j, :] = patch_normalized / patch_norm
+    
+    return normalized
 
 def compute_ncc_vol(img_right, img_left, patchsize, dmax):
     '''
@@ -45,7 +62,20 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
 
     Your code should call get_ncc_descriptors to compute the descriptors once.
     '''
-    pass
+    height, width, channels = img_right.shape
+    ncc_vol = np.zeros((dmax, height, width))
+    
+    descriptors_right = get_ncc_descriptors(img_right, patchsize)
+    descriptors_left = get_ncc_descriptors(img_left, patchsize)
+    
+    for d in range(dmax):
+        for i in range(height):
+            for j in range(width):
+                if j + d < width:
+                    score = np.dot(descriptors_right[i, j, :], descriptors_left[i, j + d, :])
+                    ncc_vol[d, i, j] = score
+    
+    return ncc_vol
 
 def get_disparity(ncc_vol):
     '''
@@ -57,10 +87,5 @@ def get_disparity(ncc_vol):
 
     the chosen disparity for each pixel should be the one with the largest score for that pixel
     '''
-    pass
-
-
-
-
-
-    
+    disparity = np.argmax(ncc_vol, axis=0)
+    return disparity
