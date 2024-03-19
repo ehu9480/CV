@@ -1,8 +1,6 @@
 import numpy as np
 #==============No additional imports allowed ================================#
-
-def get_ncc_descriptors(img, patchsize):
-    '''
+'''
     Prepare normalized patch vectors for normalized cross
     correlation.
 
@@ -24,11 +22,31 @@ def get_ncc_descriptors(img, patchsize):
     If the norm of the vector is <1e-6 before normalizing, zero out the vector.
 
     '''
-    pass
+def get_ncc_descriptors(img, patchsize):
+    height, width, channels = img.shape
+    normalized = np.zeros((height, width, channels * patchsize**2))
+    
+    for i in range(height):
+        for j in range(width):
+            patch = img[max(0, i-patchsize//2):min(height, i+patchsize//2+1),
+                        max(0, j-patchsize//2):min(width, j+patchsize//2+1), :]
+            
+            if patch.size < patchsize**2 * channels:
+                normalized[i, j] = 0
+            else:
+                patch_mean = np.mean(patch, axis=(0, 1))
+                patch_subtracted = patch - patch_mean
+                patch_flattened = patch_subtracted.reshape(-1)
+                patch_norm = np.linalg.norm(patch_flattened)
+                
+                if patch_norm < 1e-6:
+                    normalized[i, j] = 0
+                else:
+                    normalized[i, j] = patch_flattened / patch_norm
+    
+    return normalized
 
-
-def compute_ncc_vol(img_right, img_left, patchsize, dmax):
-    '''
+'''
     Compute the NCC-based cost volume
     Input:
         img_right: the right image, H x W x C
@@ -45,10 +63,22 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
 
     Your code should call get_ncc_descriptors to compute the descriptors once.
     '''
-    pass
+def compute_ncc_vol(img_right, img_left, patchsize, dmax):
+    ncc_vol = np.zeros((dmax, img_right.shape[0], img_right.shape[1]))
+    right_descriptors = get_ncc_descriptors(img_right, patchsize)
+    left_descriptors = get_ncc_descriptors(img_left, patchsize)
 
-def get_disparity(ncc_vol):
-    '''
+    for d in range(dmax):
+        for i in range(img_right.shape[0]):
+            for j in range(img_right.shape[1]):
+                if j + d < img_right.shape[1]:
+                    ncc_vol[d, i, j] = np.dot(right_descriptors[i, j], left_descriptors[i, j + d])
+                else:
+                    ncc_vol[d, i, j] = 0
+
+    return ncc_vol
+
+'''
     Get disparity from the NCC-based cost volume
     Input: 
         ncc_vol: A dmax X H X W tensor of scores
@@ -57,7 +87,9 @@ def get_disparity(ncc_vol):
 
     the chosen disparity for each pixel should be the one with the largest score for that pixel
     '''
-    pass
+def get_disparity(ncc_vol):
+    disparity = np.argmax(ncc_vol, axis=0)
+    return disparity
 
 
 
