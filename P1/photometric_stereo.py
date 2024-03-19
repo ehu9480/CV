@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 
 ##======================== No additional imports allowed ====================================##
 
@@ -13,22 +12,6 @@ def photometric_stereo_singlechannel(I, L):
     normals = G/(albedo.reshape((1,-1)) + (albedo==0).astype(float).reshape((1,-1)))
     return albedo, normals
 
-'''
-        Use photometric stereo to compute albedos and normals
-        Input:
-            images: A list of N images, each a numpy float array of size H x W x 3
-            lights: 3 x N array of lighting directions. 
-        Output:
-            albedo, normals
-            albedo: H x W x 3 array of albedo for each pixel
-            normals: H x W x 3 array of normal vectors for each pixel
-
-        Assume light intensity is 1.
-        Compute the albedo and normals for red, green and blue channels separately.
-        The normals should be approximately the same for all channels, so average the three sets
-        and renormalize so that they are unit norm
-
-    '''
 def photometric_stereo(images, lights):
     # Convert list of images to a 4D numpy array for easier manipulation
     images = np.stack(images, axis=-1)  # Now images is H x W x 3 x N
