@@ -1,4 +1,6 @@
 import numpy as np
+import cv2
+
 ##======================== No additional imports allowed ====================================##
 
 def photometric_stereo_singlechannel(I, L):
@@ -28,33 +30,33 @@ def photometric_stereo_singlechannel(I, L):
 
     '''
 def photometric_stereo(images, lights):
-    # Convert images and lights to numpy arrays
-    images = np.array(images)
-    lights = np.array(lights)
+    # Convert list of images to a 4D numpy array for easier manipulation
+    images = np.stack(images, axis=-1)  # Now images is H x W x 3 x N
 
-    # Get the number of images and the image dimensions
-    N, H, W, _ = images.shape
+    H, W, C, N = images.shape
 
-    # Reshape the images to be 2D arrays
-    images = images.reshape(N, H*W, 3)
+    # Initialize arrays for albedo and normals
+    albedo = np.zeros((H, W, C))
+    normals = np.zeros((H, W, 3))  # Average normals, so only one 3D vector per pixel
 
-    # Compute the albedo and normals for each channel separately
-    albedo = np.zeros((H, W, 3))
-    normals = np.zeros((H, W, 3))
+    for channel in range(C):
+        # Reshape images to k x n, where k is number of images (lights) and n is number of pixels
+        I = images[:, :, channel, :].reshape((H * W, N)).T  # I is now N x (H*W)
 
-    for channel in range(3):
-        I = images[:, :, :, channel].reshape(N, H*W)
-        L = lights[:, channel].reshape(3, N)
+        # Compute albedo and normals for the current channel
+        albedo_channel, normals_channel = photometric_stereo_singlechannel(I, lights)
+        
+        # Store the computed albedo
+        albedo[:, :, channel] = albedo_channel.reshape(H, W)
+        
+        # Accumulate normals for averaging
+        normals += normals_channel.T.reshape(H, W, 3)
+    
+    # Average the normals across all color channels
+    normals /= C
 
-        channel_albedo, channel_normals = photometric_stereo_singlechannel(I, L)
-
-        albedo[:, :, channel] = channel_albedo.reshape((H, W))
-        normals[:, :, channel] = channel_normals.reshape((H, W))
-
-    # Average the normals across channels
-    normals = np.mean(normals, axis=2)
-
-    # Renormalize the normals to be unit norm
-    normals = normals / np.linalg.norm(normals, axis=2, keepdims=True)
+    # Renormalize normals to ensure they are of unit length
+    norm = np.linalg.norm(normals, axis=2, keepdims=True)
+    normals = normals / (norm + (norm == 0).astype(float))  # Avoid division by zero
 
     return albedo, normals
