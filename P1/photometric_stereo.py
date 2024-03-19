@@ -28,29 +28,33 @@ def photometric_stereo_singlechannel(I, L):
 
     '''
 def photometric_stereo(images, lights):
-    H, W, _ = images[0].shape
-    N = len(images)
-    k = lights.shape[1]
-    
+    # Convert images and lights to numpy arrays
+    images = np.array(images)
+    lights = np.array(lights)
+
+    # Get the number of images and the image dimensions
+    N, H, W, _ = images.shape
+
+    # Reshape the images to be 2D arrays
+    images = images.reshape(N, H*W, 3)
+
+    # Compute the albedo and normals for each channel separately
     albedo = np.zeros((H, W, 3))
     normals = np.zeros((H, W, 3))
-    
-    for i in range(N):
-        I = images[i].reshape(-1, 3).T
-        L = lights[:, i].reshape(3, 1)
-        
-        albedo_channel, normals_channel = photometric_stereo_singlechannel(I, L)
-        
-        albedo += albedo_channel.reshape(H, W, 1)
-        normals += normals_channel.reshape(H, W, 1)
-    
-    albedo /= N
-    normals /= N
-    
-    # Renormalize normals
-    normals /= np.linalg.norm(normals, axis=2, keepdims=True)
-    
+
+    for channel in range(3):
+        I = images[:, :, :, channel].reshape(N, H*W)
+        L = lights[:, channel].reshape(3, N)
+
+        channel_albedo, channel_normals = photometric_stereo_singlechannel(I, L)
+
+        albedo[:, :, channel] = channel_albedo.reshape((H, W))
+        normals[:, :, channel] = channel_normals.reshape((H, W))
+
+    # Average the normals across channels
+    normals = np.mean(normals, axis=2)
+
+    # Renormalize the normals to be unit norm
+    normals = normals / np.linalg.norm(normals, axis=2, keepdims=True)
+
     return albedo, normals
-
-
-
