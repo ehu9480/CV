@@ -1,11 +1,6 @@
 import numpy as np
 ##======================== No additional imports allowed ====================================##
 
-
-
-
-
-
 def photometric_stereo_singlechannel(I, L):
     #L is 3 x k
     #I is k x n
