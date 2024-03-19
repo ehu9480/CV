@@ -16,9 +16,7 @@ def photometric_stereo_singlechannel(I, L):
     normals = G/(albedo.reshape((1,-1)) + (albedo==0).astype(float).reshape((1,-1)))
     return albedo, normals
 
-
-def photometric_stereo(images, lights):
-    '''
+'''
         Use photometric stereo to compute albedos and normals
         Input:
             images: A list of N images, each a numpy float array of size H x W x 3
@@ -34,7 +32,30 @@ def photometric_stereo(images, lights):
         and renormalize so that they are unit norm
 
     '''
-    pass
+def photometric_stereo(images, lights):
+    H, W, _ = images[0].shape
+    N = len(images)
+    k = lights.shape[1]
+    
+    albedo = np.zeros((H, W, 3))
+    normals = np.zeros((H, W, 3))
+    
+    for i in range(N):
+        I = images[i].reshape(-1, 3).T
+        L = lights[:, i].reshape(3, 1)
+        
+        albedo_channel, normals_channel = photometric_stereo_singlechannel(I, L)
+        
+        albedo += albedo_channel.reshape(H, W, 1)
+        normals += normals_channel.reshape(H, W, 1)
+    
+    albedo /= N
+    normals /= N
+    
+    # Renormalize normals
+    normals /= np.linalg.norm(normals, axis=2, keepdims=True)
+    
+    return albedo, normals
 
 
 
