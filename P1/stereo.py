@@ -30,7 +30,6 @@ def get_ncc_descriptors(img, patchsize):
         for j in range(width):
             patch = img[max(0, i-patchsize//2):min(height, i+patchsize//2+1),
                         max(0, j-patchsize//2):min(width, j+patchsize//2+1), :]
-            # check if the patch is out of boundary for given center pixel (i,j)
             if (i - patch.size/2) < 0 or (i + patch.size/2) >= height or (j - patch.size/2) < 0 or (j + patch.size/2) >= width:
                 normalized[i, j] = 0
             else:
@@ -90,9 +89,3 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
 def get_disparity(ncc_vol):
     disparity = np.argmax(ncc_vol, axis=0)
     return disparity
-
-
-
-
-
-    
