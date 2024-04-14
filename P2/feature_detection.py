@@ -29,85 +29,103 @@ def inbounds(shape, indices):
 ## Compute Harris Values ############################################################
 
 def computeHarrisValues(srcImage):
-        '''
-        Input:
-            srcImage -- Grayscale input image in a numpy array with
-                        values in [0, 1]. The dimensions are (rows, cols).
-        Output:
-            harrisImage -- numpy array containing the Harris score at
-                           each pixel.
-            orientationImage -- numpy array containing the orientation of the
-                                gradient at each pixel in degrees.
-        '''
-        height, width = srcImage.shape[:2]
+    '''
+    Input:
+        srcImage -- Grayscale input image in a numpy array with
+                    values in [0, 1]. The dimensions are (rows, cols).
+    Output:
+        harrisImage -- numpy array containing the Harris score at
+                       each pixel.
+        orientationImage -- numpy array containing the orientation of the
+                            gradient at each pixel in degrees.
+    '''
 
-        harrisImage = np.zeros(srcImage.shape[:2])
-        orientationImage = np.zeros(srcImage.shape[:2])
+    harrisImage = np.zeros(srcImage.shape[:2])
+    orientationImage = np.zeros(srcImage.shape[:2])
 
-        # TODO 1: Compute the harris corner strength for 'srcImage' at
-        # each pixel and store in 'harrisImage'. Also compute an 
-        # orientation for each pixel and store it in 'orientationImage.'
-        # TODO-BLOCK-BEGIN
-        raise NotImplementedError("TODO Unimplemented")   
-        
-        # TODO-BLOCK-END
+    # TODO 1: Compute the harris corner strength for 'srcImage' at
+    # each pixel and store in 'harrisImage'. Also compute an 
+    # orientation for each pixel and store it in 'orientationImage.'
+    # TODO-BLOCK-BEGIN
+    x = ndimage.sobel(srcImage, 0)
+    x_sq = x ** 2
+    y = ndimage.sobel(srcImage, 1)
+    y_sq = y ** 2
+    xy = x * y
 
-        return harrisImage, orientationImage
+    gauss_x_sq = ndimage.gaussian_filter(x_sq, .5)
+    gauss_y_sq = ndimage.gaussian_filter(y_sq, .5)
+    gauss_xy = ndimage.gaussian_filter(xy, .5)
+
+    determinant = gauss_x_sq * gauss_y_sq - gauss_xy ** 2
+    trace = gauss_x_sq + gauss_y_sq
+
+    harrisImage = determinant - .1 * (trace ** 2)
+    orientationImage = np.degrees(np.arctan2(x, y))
+    # TODO-BLOCK-END
+    return harrisImage, orientationImage
 
 
 ## Compute Corners From Harris Values ############################################################
 
 
 def computeLocalMaximaHelper(harrisImage):
-        '''
-        Input:
-            harrisImage -- numpy array containing the Harris score at
-                           each pixel.
-        Output:
-            destImage -- numpy array containing True/False at
-                         each pixel, depending on whether
-                         the pixel value is the local maxima in
-                         its 7x7 neighborhood.
-        '''
-        destImage = np.zeros_like(harrisImage, dtype=bool)
+    '''
+    Input:
+        harrisImage -- numpy array containing the Harris score at
+                       each pixel.
+    Output:
+        destImage -- numpy array containing True/False at
+                     each pixel, depending on whether
+                     the pixel value is the local maxima in
+                     its 7x7 neighborhood.
+    '''
+    destImage = np.zeros_like(harrisImage, dtype=bool)
 
-        # TODO 2: Compute the local maxima image
-        # TODO-BLOCK-BEGIN
-        raise NotImplementedError("TODO Unimplemented")
-        # TODO-BLOCK-END
+    # TODO 2: Compute the local maxima image
+    # TODO-BLOCK-BEGIN
+    destImage = (ndimage.maximum_filter(harrisImage, 7) == harrisImage)
+    # TODO-BLOCK-END
 
-        return destImage
+    return destImage
 
 
 def detectCorners(harrisImage, orientationImage):
-        '''
-        Input:
-            harrisImage -- numpy array containing the Harris score at
-                           each pixel.
-            orientationImage -- numpy array containing the orientation of the
-                                gradient at each pixel in degrees.
-        Output:
-            features -- list of all detected features. Entries should 
-            take the following form:
-            (x-coord, y-coord, angle of gradient, the detector response)
-            
-            x-coord: x coordinate in the image
-            y-coord: y coordinate in the image
-            angle of the gradient: angle of the gradient in degrees
-            the detector response: the Harris score of the Harris detector at this point
-        '''
-        height, width = harrisImage.shape[:2]
-        features = []
+    '''
+    Input:
+        harrisImage -- numpy array containing the Harris score at
+                       each pixel.
+        orientationImage -- numpy array containing the orientation of the
+                            gradient at each pixel in degrees.
+    Output:
+        features -- list of all detected features. Entries should 
+        take the following form:
+        (x-coord, y-coord, angle of gradient, the detector response)
+        
+        x-coord: x coordinate in the image
+        y-coord: y coordinate in the image
+        angle of the gradient: angle of the gradient in degrees
+        the detector response: the Harris score of the Harris detector at this point
+    '''
+    height, width = harrisImage.shape[:2]
+    features = []
 
-        # TODO 3: Select the strongest keypoints in a 7 x 7 area, according to
-        # the corner strength function. Once local maxima are identified then 
-        # construct the corresponding corner tuple of each local maxima.
-        # Return features, a list of all such features.
-        # TODO-BLOCK-BEGIN
-        raise NotImplementedError("TODO Unimplemented")
-        # TODO-BLOCK-END
+    # TODO 3: Select the strongest keypoints in a 7 x 7 area, according to
+    # the corner strength function. Once local maxima are identified then 
+    # construct the corresponding corner tuple of each local maxima.
+    # Return features, a list of all such features.
+    # TODO-BLOCK-BEGIN
+    harrisMaxImage = computeLocalMaximaHelper(harrisImage)
+    for y in range(height):
+        for x in range(width):
+            if not harrisMaxImage[y, x]:
+                continue
 
-        return features
+            feature = (x, y, orientationImage[y, x], harrisImage[y, x])
+            features.append(feature)
+    # TODO-BLOCK-END
+
+    return features
 
 
 ## Compute MOPS Descriptors ############################################################
@@ -142,8 +160,16 @@ def computeMOPSDescriptors(image, features):
         # helper functions that might be useful
         # Note: use grayImage to compute features on, not the input image
         # TODO-BLOCK-BEGIN
+        T2 = transformations.get_trans_mx(
+            np.array([windowSize/2, windowSize/2, 0]))
+        S = transformations.get_scale_mx(1/5, 1/5, 0)
+        R = transformations.get_rot_mx(0, 0, -1 * np.radians(f[2]))
+        T1 = transformations.get_trans_mx(
+            np.array([-int(f[0]), -int(f[1]), 0]))
 
-        raise NotImplementedError("TODO Unimplemented")
+        combined = np.matmul(T2, np.matmul(S, np.matmul(R, T1)))
+        transMx = np.delete(
+            np.delete(np.delete(combined, 2, 0), 2, 0), 2, 1)
         # TODO-BLOCK-END
 
         # Call the warp affine function to do the mapping
@@ -156,8 +182,12 @@ def computeMOPSDescriptors(image, features):
         # define as less than 1e-10) then set the descriptor
         # vector to zero. Lastly, write the vector to desc.
         # TODO-BLOCK-BEGIN
-
-        raise NotImplementedError("TODO Unimplemented")
+        vector = np.ndarray.flatten(destImage)
+        if np.var(vector) < 1e-10:
+            vector = np.zeros(vector.shape)
+        else:
+            vector = (vector - np.mean(vector)) / np.sqrt(np.var(vector))
+        desc[i] = vector
         # TODO-BLOCK-END
 
     return desc
@@ -167,9 +197,7 @@ def computeMOPSDescriptors(image, features):
 def produceMatches(desc_img1, desc_img2):
     """
     Input:
-        corners_img1 -- list of corners produced by detectCorners on image 1
         desc_img1 -- corresponding set of MOPS descriptors for image 1
-        corners_img2 -- list of corners produced by detectCorners on image 2
         desc_img2 -- corresponding set of MOPS descriptors for image 2
 
     Output:
@@ -199,11 +227,13 @@ def produceMatches(desc_img1, desc_img2):
     # Note: multiple features from the first image may match the same
     # feature in the second image.
     # TODO-BLOCK-BEGIN
-    raise NotImplementedError("TODO Unimplemented")
+    dist = scipy.spatial.distance.cdist(desc_img1, desc_img2, 'euclidean')
+
+    for i, j in enumerate(dist):
+        index_img1 = i
+        index_img2 = np.argpartition(j, 1)[0]
+        score = j[index_img2] ** 2 / j[np.argpartition(j, 2)[1]] ** 2
+        matches.append((index_img1, index_img2, score))
     # TODO-BLOCK-END
 
     return matches
-
-
-
-
