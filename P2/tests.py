@@ -64,7 +64,7 @@ def try_this(todo, run, truth, compare, *args, **kargs):
     return failed
 
 
-image = np.array(Image.open('resources/triangle1.jpg'))
+image = np.array(Image.open('P2/resources/triangle1.jpg'))
 grayImage = cv2.cvtColor(image.astype(np.float32)/255.0, cv2.COLOR_BGR2GRAY)
 def compute_and_save():
     (a,b) = computeHarrisValues(grayImage) # Todo1
@@ -93,7 +93,7 @@ tolerance range.
 
 This is not the script used by the autograder. 
 '''
-loaded = np.load('resources/arrays.npz', allow_pickle=True)
+loaded = np.load('P2/resources/arrays.npz', allow_pickle=True)
 d = unpickle_cv2(loaded['d_proc'])
 
 try_this(1, computeHarrisValues, [loaded['a'],loaded['b']], compare_array, grayImage)
