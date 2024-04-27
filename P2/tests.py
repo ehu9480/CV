@@ -64,7 +64,7 @@ def try_this(todo, run, truth, compare, *args, **kargs):
     return failed
 
 
-image = np.array(Image.open('resources/triangle1.jpg'))
+image = np.array(Image.open('/c:/Users/ehu94/Documents/GitHub/CV/resources/triangle1.jpg'))
 grayImage = cv2.cvtColor(image.astype(np.float32)/255.0, cv2.COLOR_BGR2GRAY)
 def compute_and_save():
     (a,b) = computeHarrisValues(grayImage) # Todo1
