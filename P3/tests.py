@@ -6,7 +6,7 @@ from scipy.signal import convolve
 
 class ImreadTestCase(unittest.TestCase):
     def setUp(self):
-        self.file = 'test.png'
+        self.file = 'P3/test.png'
 
     def testOutput(self):
         output = student.imread(self.file)
@@ -36,7 +36,7 @@ class GaussianTestCase(unittest.TestCase):
 
 class GradientTestCase(unittest.TestCase):
     def setUp(self):
-        self.img = student.imread('test.png')
+        self.img = student.imread('P3/test.png')
 
     def testValues(self):
         mag, ori = student.gradient(self.img)
@@ -62,7 +62,7 @@ class Check_distance_from_lineTestCase(unittest.TestCase):
 
 class Draw_linesTestCase(unittest.TestCase):
     def setUp(self):
-        self.img = student.imread('test.png')
+        self.img = student.imread('P3/test.png')
         self.lines = [[ -1.57079633, 274.89321881],[ -1.02101761, -11.10678119],[  3.14159265,  68.89321881]]
     
     def testValues(self):
@@ -83,7 +83,7 @@ def matches(list1, list2, rtol=1e-03):
 
 class Hough_votingandLocalmaxTestCase(unittest.TestCase):
     def setUp(self):
-        self.img = student.imread('test.png')
+        self.img = student.imread('P3/test.png')
         self.gradmag, self.gradori = student.gradient(self.img)
         self.thetas = np.arange(-np.pi-np.pi/40, np.pi+np.pi/40, np.pi/40)
         imgdiagonal = np.sqrt(self.img.shape[0]**2 + self.img.shape[1]**2)

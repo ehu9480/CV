@@ -12,13 +12,13 @@ def imread(filename):
 
 ### TODO 2: Create a gaussian filter of size k x k and with standard deviation sigma
 def gaussian_filter(k, sigma):
-    x = np.arange(-k//2, k//2 + 1)
-    y = np.arange(-k//2, k//2 + 1)
-    xx, yy = np.meshgrid(x, y)
-    f = np.exp(-(xx**2 + yy**2) / (2 * sigma**2))
-    f = f / np.sum(f)
+    f = np.zeros((k,k))
+    center = k//2
+    for i in range(k):
+        for j in range(k):
+            f[i,j] = np.exp(-(float(i-center)**2 + float(j-center)**2)/(2*sigma*sigma))
+    f = f/np.sum(f)
     return f
-
 ### TODO 3: Compute the image gradient. 
 ### First convert the image to grayscale by using the formula:
 ### Intensity = Y = 0.2125 R + 0.7154 G + 0.0721 B
@@ -26,13 +26,16 @@ def gaussian_filter(k, sigma):
 ### Convolve with [0.5, 0, -0.5] to get the X derivative on each channel and convolve with [[0.5],[0],[-0.5]] to get the Y derivative on each channel. (use scipy.signal.convolve) 
 ### Return the gradient magnitude and the gradient orientation (use arctan2)
 def gradient(img):
-    gray_img = 0.2125*img[:,:,0] + 0.7154*img[:,:,1] + 0.0721*img[:,:,2]
-    smoothed_img = signal.convolve(gray_img, gaussian_filter(5,1), mode='same')
-    gx = signal.convolve(smoothed_img, np.array([[0.5, 0, -0.5]]), mode='same')
-    gy = signal.convolve(smoothed_img, np.array([[0.5],[0],[-0.5]]), mode='same')
+    img = 0.2125*img[:,:,0] + 0.7154*img[:,:,1] + 0.0721*img[:,:,2]
+
+    img = signal.convolve(img, gaussian_filter(5,1), mode='same')
+
+    gx = signal.convolve(img, np.array([[0.5, 0, -0.5]]), mode='same')
+    gy = signal.convolve(img, np.array([[0.5],[0],[-0.5]]), mode='same')
     mag = np.sqrt(gx*gx + gy*gy)
     ori = np.arctan2(gy, gx)
     return mag, ori
+
 
 ##########----------------Line detection----------------
 
@@ -43,14 +46,14 @@ def gradient(img):
 def check_distance_from_line(x, y, theta, c, thresh):
     return (np.abs(x*np.cos(theta) + y*np.sin(theta) + c)<thresh)
 
+
 ### TODO 5: Write a function to draw a set of lines on the image. The `lines` input is a list of (theta, c) pairs. Each line must appear as red on the final image
 ### where every pixel which is less than thresh units away from the line should be colored red
 def draw_lines(img, lines, thresh):
     img = img.copy()
     I, J = np.indices(img.shape[:2])
     for (theta, c) in lines:
-        dist = np.abs(J * np.cos(theta) + I * np.sin(theta) + c) / np.sqrt(1 + np.cos(theta)**2 + np.sin(theta)**2)
-        img[dist < thresh] = [1, 0, 0]
+        img[check_distance_from_line(J, I, theta, c, thresh)] = [1, 0, 0]
     return img
  
 ### TODO 6: Do Hough voting. You get as input the gradient magnitude and the gradient orientation, as well as a set of possible theta values and a set of possible c
@@ -59,21 +62,21 @@ def draw_lines(img, lines, thresh):
 ### (b) Its distance from the (theta, c) line is less than thresh2, and
 ### (c) The difference between theta and the pixel's gradient orientation is less than thresh3
 def hough_voting(gradmag, gradori, thetas, cs, thresh1, thresh2, thresh3):
-    bmap = gradmag > thresh1
+    bmap = gradmag > thresh1  # Consider increasing this threshold
     I, J = np.where(bmap)
     votes = np.zeros((len(thetas), len(cs)))
     for i, theta in enumerate(thetas):
         for j, c in enumerate(cs):
-            val = check_distance_from_line(J, I, theta, c, thresh2)
-            ori = np.abs(gradori[I, J] - theta)
-            votes[i, j] = np.sum(val & (ori < thresh3))
+            val = check_distance_from_line(J, I, theta, c, thresh2)  # Consider tightening this threshold
+            ori = np.abs(gradori[I, J] - theta) < thresh3  # Consider narrowing this range
+            votes[i, j] = np.sum(val & ori)
     return votes
     
 ### TODO 7: Find local maxima in the array of votes. A (theta, c) pair counts as a local maxima if (a) its votes are greater than thresh, and 
 ### (b) its value is the maximum in a (nbhd x nbhd) neighborhood in the votes array.
 ### Return a list of (theta, c) pairs
 def localmax(votes, thetas, cs, thresh, nbhd):
-    chosenI, chosenJ = np.where((votes > thresh) & (votes == ndimage.maximum_filter(votes, size=nbhd)))
+    chosenI, chosenJ = np.where((votes > thresh) & (votes == ndimage.maximum_filter(votes, size=nbhd)))  # Consider increasing `nbhd` and `thresh`
     return list(zip(thetas[chosenI], cs[chosenJ]))
 
 # Final product: Identify lines using the Hough transform    
